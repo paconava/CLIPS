@@ -2,9 +2,11 @@
 ;;; Programa del Mundo de los Bloques
 ;;; Para ejecutarlo solamente carguelo en CLIPS, de reset y ejecutelo (run)
 ;;;======================================================
+(defglobal ?*sal* = 0)
 (defmodule MAIN (export ?ALL))
 (defmodule CLEAR (import MAIN ?ALL))
 (defmodule RECORRIDOS (import MAIN ?ALL))
+
 (deftemplate MAIN::item
         (slot type)
         (slot name)
@@ -48,6 +50,9 @@
         (slot move)
         (slot on-top-of)
 )
+(deftemplate RECORRIDOS::auxiliar
+        (slot valor)
+)
 (deftemplate RECORRIDOS::ir-a
         (slot zone)
 )
@@ -74,6 +79,7 @@
         (slot door)
         (slot obj)
 )
+
 (deffacts MAIN::initial-state
         ;;; Objects
         (item (type Objects) (name apple) (zone corridor) (image apple) (attributes pick) (pose 0.08 0.57 2.0))
@@ -129,17 +135,23 @@
   =>
     (remove "/home/paconava/data.txt")
     (focus CLEAR RECORRIDOS)
+    
 )
 (deffacts CLEAR::start
     (open "data.txt" mydata "w")
     (close mydata)
-    (goal (move hammer)(on-top-of floor))
+    (goal (move milk)(on-top-of floor))
+    (goal (move apple)(on-top-of floor))
+    (goal (move sushi)(on-top-of floor))
+
 )
 (deffacts RECORRIDOS::ejec
-    (find-obj (obj hammer))
-    (find-obj (obj book))
-    ;(find-obj (obj sushi))
-    ;(find-obj (obj apple))
+    (find-obj (obj milk)(order 0))
+    (find-obj (obj apple)(order 1))
+    (find-obj (obj sushi)(order 2))
+    (find-obj (obj soap)(order 3))
+    (find-obj (obj shampoo)(order 4))
+    (auxiliar (valor ?*sal*))
 )
 
 (defrule RECORRIDOS::no-viaja
@@ -160,15 +172,17 @@
         (printout t "Justina se movió de " ?actual " a " ?zone "." crlf)
 )
 (defrule RECORRIDOS::encuentra-obj
-        ?obj <- (find-obj (obj ?obj1))
+        ?val <- (auxiliar (valor ?val1))
+        ?obj <- (find-obj (obj ?obj1)(order ?val1))
         (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x2 ?y2 ?z2))
         ?pose1 <- (robot (name Justina) (zone ?actual) (pose ?x1 ?y1 ?z1)(carring false)(status 0))
         =>
-        (retract ?obj ?pose1)
+        (bind ?*sal* (+ ?*sal* 1))
+        (retract ?obj ?pose1 ?val)
         (assert (robot (name Justina)(zone ?zone1)(pose ?x2 ?y2 ?z2)(carring false)(status 1))
+                (auxiliar (valor ?*sal*))
                 (grasp-obj (obj ?obj1))
         )
-        
         (printout t "Justina encontró " ?obj1 "." crlf)
         (open "data.txt" mydata "a")
         (printout mydata "find " ?obj1 crlf)

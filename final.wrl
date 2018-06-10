@@ -1,0 +1,26 @@
+;*************************************************************************
+;* File: final.world                                                     *
+;* Purpose: Definition of the forbidden and allowed areas in the Robot's *
+;* world. These areas are derivated from the objects in the              *
+;* world.																 *
+;*************************************************************************
+( dimensions final 0.85 1.30 )
+; Tables
+( polygon object bedroom_table 0.26 0.05 0.26 0.15 0.47 0.15 0.47 0.05 )
+( polygon object deposit_table 0.00 1.15 0.00 1.25 0.35 1.25 0.35 1.15 )
+( polygon object kitchen_table 0.54 0.85 0.54 0.95 0.71 0.95 0.71 0.85 )
+( polygon object service_table 0.54 0.05 0.54 0.15 0.71 0.15 0.71 0.05 )
+; Internall walls
+( polygon wall wall5 0.00 0.45 0.00 0.49 0.15 0.49 0.15 0.45 )
+( polygon wall wall6 0.21 0.45 0.26 0.45 0.26 0.00 0.21 0.00 )
+( polygon wall wall7 0.21 0.45 0.21 0.49 0.41 0.49 0.41 0.45 )
+( polygon wall wall8 0.51 0.45 0.56 0.45 0.56 0.00 0.51 0.00 )
+( polygon wall wall9 0.51 0.45 0.51 0.49 0.71 0.49 0.71 0.45 )
+( polygon wall wall10 0.00 0.67 0.00 0.72 0.41 0.72 0.41 0.67 )
+( polygon wall wall11 0.54 0.67 0.54 0.72 0.71 0.72 0.71 0.67 )
+( polygon wall wall12 0.54 1.30 0.59 1.30 0.59 0.67 0.54 0.67 )
+; External walls
+( polygon wall wall1 0.80 0.00 0.80 1.30 0.85 1.30 0.85 0.00 )
+( polygon wall wall2 0.00 0.00 0.00 1.30 0.05 1.30 0.05 0.00 )
+( polygon wall wall3 0.00 0.00 0.00 0.05 0.85 0.05 0.85 0.00 )
+( polygon wall wall4 0.00 1.25 0.00 1.30 0.85 1.30 0.85 1.25 )

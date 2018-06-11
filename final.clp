@@ -3,6 +3,7 @@
 ;;; Para ejecutarlo solamente carguelo en CLIPS, de reset y ejecutelo (run)
 ;;;======================================================
 (defglobal ?*sal* = 0)
+(defglobal ?*clr* = 0)
 (defmodule MAIN (export ?ALL))
 (defmodule CLEAR (import MAIN ?ALL))
 (defmodule RECORRIDOS (import MAIN ?ALL))
@@ -46,11 +47,14 @@
         (slot upper)
         (slot lower)
 )
-(deftemplate CLEAR::goal 
+(deftemplate RECORRIDOS::goal 
         (slot move)
         (slot on-top-of)
 )
 (deftemplate RECORRIDOS::auxiliar
+        (slot valor)
+)
+(deftemplate RECORRIDOS::clr-f
         (slot valor)
 )
 (deftemplate RECORRIDOS::ir-a
@@ -97,6 +101,8 @@
         (on-top-of (upper nothing)(lower hammer))
         (on-top-of (upper hammer)(lower book))
         (on-top-of (upper book)(lower floor))
+        (on-top-of (upper nothing)(lower soap))
+        (on-top-of (upper nothing)(lower shampoo))
         ;(goal (move A)(on-top-of E))
 
         ;;; Destinos
@@ -126,9 +132,7 @@
         (human (name Mother) (zone bedroom) (pose 0.59 0.25 0.0))
         (human (name Father) (zone service) (pose 0.73 0.21 0.0))
         ;;; ROBOTS
-        (robot (name Justina) (zone studio) (pose 0.09 0.16 0.0)(carring false)(status 0))
-
-        ;;; ORDER
+        (robot (name Justina) (zone studio) (pose 0.09 0.16 0.0)(carring false)(status 0))   
         
 )
 (defrule MAIN::initial-state
@@ -140,10 +144,6 @@
 (deffacts CLEAR::start
     (open "data.txt" mydata "w")
     (close mydata)
-    (goal (move milk)(on-top-of floor))
-    (goal (move apple)(on-top-of floor))
-    (goal (move sushi)(on-top-of floor))
-
 )
 (deffacts RECORRIDOS::ejec
     (find-obj (obj milk)(order 0))
@@ -152,43 +152,70 @@
     (find-obj (obj soap)(order 3))
     (find-obj (obj shampoo)(order 4))
     (auxiliar (valor ?*sal*))
+    (clr-f (valor 0))
 )
 
-(defrule RECORRIDOS::no-viaja
-        ?destino <- (ir-a (zone ?zone))
-        (item (type Room) (name ?zone))
-        (robot (name Justina) (zone ?zone))
+; (defrule RECORRIDOS::no-viaja
+;         ?destino <- (ir-a (zone ?zone))
+;         (item (type Room) (name ?zone))
+;         (robot (name Justina) (zone ?zone))
+;         =>
+;         (retract ?destino)
+;         (printout t "Justina ya se encuentra en " ?zone "." crlf)
+; )
+; (defrule RECORRIDOS::viaja
+;         ?destino <- (ir-a (zone ?zone))
+;         (item (type Room) (name ?zone)(pose ?x2 ?y2 ?z2))
+;         ?pose1 <- (robot (name Justina) (zone ?actual) (pose ?x1 ?y1 ?z1))
+;         =>
+;         (retract ?destino ?pose1)
+;         (assert (robot (name Justina)(zone ?zone)(pose ?x2 ?y2 ?z2)))
+;         (printout t "Justina se movió de " ?actual " a " ?zone "." crlf)
+; )
+(defrule RECORRIDOS::va-a-obj
+        (auxiliar (valor ?val1))
+        (find-obj (obj ?obj1)(order ?val1))
+        (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x1 ?y1 ?z1))
+        ?pose1 <- (robot (name Justina) (zone ?zone2) (pose ~?x1 ~?y1 ?z2)(carring false)(status 0))
         =>
-        (retract ?destino)
-        (printout t "Justina ya se encuentra en " ?zone "." crlf)
-)
-(defrule RECORRIDOS::viaja
-        ?destino <- (ir-a (zone ?zone))
-        (item (type Room) (name ?zone)(pose ?x2 ?y2 ?z2))
-        ?pose1 <- (robot (name Justina) (zone ?actual) (pose ?x1 ?y1 ?z1))
-        =>
-        (retract ?destino ?pose1)
-        (assert (robot (name Justina)(zone ?zone)(pose ?x2 ?y2 ?z2)))
-        (printout t "Justina se movió de " ?actual " a " ?zone "." crlf)
+        (retract ?pose1)
+        (assert (robot (name Justina) (zone ?zone1) (pose ?x1 ?y1 ?z1)(carring false)(status 0)))
+        (printout t "Justina fue a " ?obj1 "." crlf)
+        (open "data.txt" mydata "a")
+        (printout mydata "find " ?obj1 crlf)
+        (printout mydata "goto " ?x1 "," ?y1 "," ?z1 crlf)
+        (close mydata)
 )
 (defrule RECORRIDOS::encuentra-obj
+        (auxiliar (valor ?val1))
+        (find-obj (obj ?obj1)(order ?val1))
+        (on-top-of (upper ~nothing)(lower ?obj1))
+        (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x1 ?y1 ?z1))
+        ?clr <- (clr-f (valor 0))
+        (robot (name Justina) (zone ?zone1) (pose ?x1 ?y1 ?z1)(carring false)(status 0))
+        =>
+        (retract ?clr)
+        (assert (goal (move ?obj1))
+                (clr-f (valor 1))
+        )
+        (printout t "Justina está desbloqueando " ?obj1 "." crlf)
+)
+(defrule RECORRIDOS::encuentra-obj-cleared
         ?val <- (auxiliar (valor ?val1))
         ?obj <- (find-obj (obj ?obj1)(order ?val1))
-        (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x2 ?y2 ?z2))
-        ?pose1 <- (robot (name Justina) (zone ?actual) (pose ?x1 ?y1 ?z1)(carring false)(status 0))
+        (on-top-of (upper nothing)(lower ?obj1))
+        (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x1 ?y1 ?z1))
+        ?pose1 <- (robot (name Justina) (zone ?zone1) (pose ?x1 ?y1 ?z1)(carring false)(status 0))
         =>
         (bind ?*sal* (+ ?*sal* 1))
         (retract ?obj ?pose1 ?val)
-        (assert (robot (name Justina)(zone ?zone1)(pose ?x2 ?y2 ?z2)(carring false)(status 1))
+        (assert (robot (name Justina)(zone ?zone1)(pose ?x1 ?y1 ?z1)(carring false)(status 1))
                 (auxiliar (valor ?*sal*))
                 (grasp-obj (obj ?obj1))
         )
         (printout t "Justina encontró " ?obj1 "." crlf)
-        (open "data.txt" mydata "a")
-        (printout mydata "find " ?obj1 crlf)
-        (printout mydata "goto " ?x2 "," ?y2 "," ?z2 crlf)
-        (close mydata)
 )
+
 (defrule RECORRIDOS::agarra-obj
         ?obj <- (grasp-obj (obj ?obj1))
         (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x2 ?y2 ?z2))
@@ -273,12 +300,14 @@
         (close mydata)
 )
 (defrule RECORRIDOS::suelta-obj-s-puerta
-        ?obj <- (release-obj (obj ?obj1)(dest ?dest))
-        (item (type Objects)(name hammer | book | shampoo | soap)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x2 ?y2 ?z2))
+        ?rel <- (release-obj (obj ?obj1)(dest ?dest))
+        ?obj <- (item (type Objects)(name hammer | book | shampoo | soap)(zone ?zone1)(image ?obj1)(attributes pick)(pose ?x2 ?y2 ?z2))
         ?pose1 <- (robot (name Justina) (zone ?actual) (pose ?x2 ?y2 ?z2)(carring true)(status 1))
         =>
-        (retract ?obj ?pose1)
-        (assert (robot (name Justina)(zone ?zone1)(pose ?x2 ?y2 ?z2)(carring false)(status 0)))
+        (retract ?rel ?obj ?pose1)
+        (assert (robot (name Justina)(zone ?zone1)(pose ?x2 ?y2 ?z2)(carring false)(status 0))
+                (item (type Objects)(name ?obj1)(zone ?zone1)(image ?obj1)(attributes done)(pose ?x2 ?y2 ?z2))
+        )
         (printout t "Justina soltó " ?obj1 "." crlf)
         (open "data.txt" mydata "a")
         (printout mydata "release " ?obj1 crlf)
@@ -312,7 +341,7 @@
         (printout mydata "close " ?door crlf)
         (close mydata)
 )
-(defrule CLEAR::move-directly
+(defrule RECORRIDOS::move-directly
         ?goal <- (goal (move ?block1) (on-top-of ?block2))
         (item (type Objects) (name ?block1) (zone ?zone1) (image ?block1) (attributes pick) (pose ?x1 ?y1 ?z1))
         (item (type Objects) (name ?block2) (zone ?zone2) (image ?block2) (attributes pick) (pose ?x2 ?y2 ?z2))
@@ -325,18 +354,24 @@
         (on-top-of (upper nothing)(lower ?block3)))
         (printout t ?block1 " moved on top of " ?block2 "." crlf)
 )
-(defrule CLEAR::move-to-floor
+(defrule RECORRIDOS::move-to-floor
         ?goal <- (goal (move ?block1) (on-top-of floor))
+        ?clr <- (clr-f (valor 1))
         (item (type Objects) (name ?block1) (zone ?zone1) (image ?block1) (attributes pick) (pose ?x1 ?y1 ?z1))
         (on-top-of (upper nothing) (lower ?block1))
         ?stack <- (on-top-of (upper ?block1) (lower ?block2))
         =>
-        (retract ?goal ?stack)
+        (retract ?clr ?goal ?stack)
         (assert (on-top-of (upper ?block1)(lower floor))
-        (on-top-of (upper nothing)(lower ?block2)))
+                (clr-f (valor 0))
+                (on-top-of (upper nothing)(lower ?block2))
+        )
         (printout t ?block1 " moved on top of floor. " crlf)
+        (open "data.txt" mydata "a")
+        (printout mydata "move-to-floor " ?block1 crlf)
+        (close mydata)
 )
-(defrule CLEAR::clear-upper-block
+(defrule RECORRIDOS::clear-upper-block
         (goal (move ?block1))
         (item (type Objects) (name ?block1) (zone ?zone1) (image ?block1) (attributes pick) (pose ?x1 ?y1 ?z1))
         (on-top-of (upper ?block2) (lower ?block1))
@@ -344,7 +379,7 @@
         =>
         (assert (goal (move ?block2)(on-top-of floor)))
 )
-(defrule CLEAR::clear-lower-block
+(defrule RECORRIDOS::clear-lower-block
         (goal (on-top-of ?block1))
         (item (type Objects) (name ?block1) (zone ?zone1) (image ?block1) (attributes pick) (pose ?x1 ?y1 ?z1))
         (on-top-of (upper ?block2) (lower ?block1))
